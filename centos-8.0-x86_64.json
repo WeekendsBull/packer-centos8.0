@@ -1,0 +1,93 @@
+{
+    "variables": {
+        "file": "http://mirrors.ukfast.co.uk/sites/ftp.centos.org/8-stream/isos/x86_64/CentOS-Stream-x86_64-dvd1.iso",
+        "checksum": "559715017959f5967d2b9876bd27f46d8a740e1d02f59dfb8fd5e7114dd5cc79",
+        "type": "sha256",
+        "non_gui": "false",
+        "vboxversion": "0.1905",
+        "osdetails": "centos-8.0.1905-x86-64",
+        "version": "{{ timestamp }}",
+        "vagrantcloud_token": "{{env `ATLAS_TOKEN`}}",
+        "version_desc": "Latest kernel build of CentOS Linux 8/x86_64 Vagrant images based on CentOS 8.1905 (With GNOME Desktop)"
+    },
+    "builders": [{
+        "type": "virtualbox-iso",
+        "iso_url": "{{ user `file` }}",
+        "iso_checksum": "{{ user `checksum` }}",
+        "iso_checksum_type": "{{ user `type` }}",
+        "headless": "{{ user `non_gui` }}",
+        "output_directory": "c:/vagrant-box",
+        "vm_name": "centos-8.{{ user `vboxversion` }}-x86_64_to_vagrant",
+        "guest_os_type": "RedHat_64",
+        "disk_size": "30720",
+        "vboxmanage": [
+            [
+                "modifyvm",
+                "{{.Name}}",
+                "--memory",
+                "4096"
+            ],
+            [
+                "modifyvm",
+                "{{.Name}}",
+                "--cpus",
+                "2"
+            ],
+            [
+                "modifyvm",
+                "{{.Name}}",
+                "--audio",
+                "none"
+            ],
+            [
+                "modifyvm",
+                "{{.Name}}",
+                "--usb",
+                "off"
+            ]
+        ],
+        "http_directory": "./",
+        "boot_wait": "10s",
+        "boot_command": [
+            "<tab> text ks=http://{{ .HTTPIP }}:{{ .HTTPPort }}/http/centos-8.0-kickstart.cfg<enter><wait>"
+        ],
+        "ssh_username": "vagrant",
+        "ssh_password": "vagrant",
+        "ssh_port": 22,
+        "ssh_wait_timeout": "6000s",
+        "guest_additions_path": "VBoxGuestAdditions_{{.Version}}.iso",
+        "virtualbox_version_file": ".vbox_version",
+        "shutdown_command": "sudo shutdown -h 0"
+    }],
+    "provisioners": [{
+        "type": "shell",
+        "execute_command": "echo 'vagrant'|sudo -S sh '{{.Path}}'",
+        "override": {
+            "virtualbox-iso": {
+                "scripts": [
+                    "scripts/base-centos-8.0.sh"
+                ]
+            }
+        }
+    }],
+    "post-processors": [
+        [{
+                "type": "vagrant",
+                "keep_input_artifact": false,
+                "compression_level": 9,
+                "override": {
+                    "virtualbox": {
+                        "output": "target-centos-8.0/{{ user `osdetails` }}.box"
+                    }
+                }
+            },
+            {
+                "type": "vagrant-cloud",
+                "box_tag": "nitindas/centos-8.0",
+                "version": "{{ user `vboxversion` }}-{{user `version`}}",
+                "version_description": "{{ user `version_desc` }}",
+                "access_token": "{{user `vagrantcloud_token`}}"
+            }
+        ]
+    ]
+}
